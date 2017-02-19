@@ -46,11 +46,13 @@ function draw() {
 
 function serialEvent() {
  //the most important
+ //console.log("there is data");
   inData = Number(serial.read());
   controlSound(inData);
 }
 
 function controlSound(input) {
+  //console.log("in controlSound function");
   switch(input) {
     case 49:   // start/stop, press 1
       if (song.isPlaying()){
