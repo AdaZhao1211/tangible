@@ -2,23 +2,18 @@ const int xInput = A0;
 const int yInput = A1;
 const int zInput = A2;
 const int buttonPin = 2;
-bool stable = true;
+bool stable = true; // for x axis
 bool play = true;
 bool stopp = true;
 bool pause = true;
 bool speedup = true;
-
-// Raw Ranges:
-// initialize to mid-range and allow calibration to
-// find the minimum and maximum for each axis
-int xRawMin = 512;
-int xRawMax = 512;
-
-int yRawMin = 512;
-int yRawMax = 512;
-
-int zRawMin = 512;
-int zRawMax = 512;
+int timer = 500; //500 ms to react
+unsigned long timerecord;
+int state = -1;
+int randomCount = 0;
+unsigned long rtimerecord;
+unsigned long record;
+boolean dorecord = true;
 
 // Take multiple samples to reduce noise
 const int sampleSize = 10;
@@ -34,39 +29,11 @@ void loop()
   int xRaw = ReadAxis(xInput);
   int yRaw = ReadAxis(yInput);
   int zRaw = ReadAxis(zInput);
-  if (digitalRead(buttonPin) == LOW)
-  {
-    AutoCalibrate(xRaw, yRaw, zRaw);
-  }
-  else
-  {
-    Test(xRaw, yRaw, zRaw);
-
-    // Convert raw values to 'milli-Gs"
-    //    long xScaled = map(xRaw, xRawMin, xRawMax, -1000, 1000);
-    //    long yScaled = map(yRaw, yRawMin, yRawMax, -1000, 1000);
-    //    long zScaled = map(zRaw, zRawMin, zRawMax, -1000, 1000);
-    //
-    //    // re-scale to fractional Gs
-    //    float xAccel = xScaled / 1000.0;
-    //    float yAccel = yScaled / 1000.0;
-    //    float zAccel = zScaled / 1000.0;
-    //
-    ////    Serial.print(" :: ");
-    ////    Serial.print(xAccel);
-    ////    Serial.print("G, ");
-    ////    Serial.print(yAccel);
-    ////    Serial.print("G, ");
-    ////    Serial.print(zAccel);
-    ////    Serial.println("G");
-    //
-    delay(10);
-  }
+  ////Serial.println(xRaw);
+  Test(xRaw, yRaw, zRaw);
+  delay(50);
 }
 
-//
-// Read "sampleSize" samples and report the average
-//
 int ReadAxis(int axisPin)
 {
   long reading = 0;
@@ -79,100 +46,121 @@ int ReadAxis(int axisPin)
   return reading / sampleSize;
 }
 
+void setTrue() {
+  stable = true;
+  play = true;
+  stopp = true;
+  pause = true;;
+  speedup = true;
+}
 
 void Test(int xRaw, int yRaw, int zRaw)
 {
-  if (yRaw < 410 && pause)
+
+  if (zRaw > 640 && pause)
   {
-    Serial.println("pause");
-    stable = true;
-    play = true;
-    stopp = true;
-    pause = false;
-    speedup = true;
-  }
-  if (yRaw > 600 && speedup)
-  {
-    Serial.println("fast");
-    stable = true;
-    play = true;
-    stopp = true;
-    pause = true;
-    speedup = false;
+    if (state != 5) {
+      if (state != 1) {
+        timerecord = millis();
+        state = 1;
+      }
+      if (millis() - timerecord > timer) {
+        Serial.write(50);
+        setTrue();
+        pause = false;
+      }
+    }
 
   }
-  if (zRaw < 450 && stopp)
+  if (zRaw < 450 && speedup)
   {
-    Serial.println("stop");
-    stable = true;
-    play = true;
-    stopp = false;
-    pause = true;
-    speedup = true;
-
+    if (state != 5) {
+      if (state != 2) {
+        timerecord = millis();
+        state = 2;
+      }
+      if (millis() - timerecord > timer) {
+        Serial.write(53);
+        setTrue();
+        speedup = false;
+      }
+    }
   }
-  if (zRaw > 640 && play)
+  if (yRaw > 600  && stopp)
   {
-    Serial.println("play");
-    stable = true;
-    play = false;
-    stopp = true;
-    pause = true;
-    speedup = true;
-
+    if (state != 5) {
+      if (state != 3) {
+        timerecord = millis();
+        state = 3;
+      }
+      if (millis() - timerecord > timer) {
+        Serial.write(55);
+        setTrue();
+        stopp = false;
+      }
+    }
   }
+  if ( yRaw < 410 && play)
+  {
+    if (state != 5) {
+      if (state != 4) {
+        timerecord = millis();
+        state = 4;
+      }
+      if (millis() - timerecord > timer) {
+        Serial.write(49);
+        setTrue();
+        play = false;
+      }
+    }
+  }
+
+
   if (stable) {
-    if (xRaw < 420 )
-    {
-      Serial.println("next one");
-      stable = false;
-      play = true;
-      stopp = true;
-      pause = true;
-      speedup = true;
+    if (state == 5) {
+      if (xRaw < 400 || xRaw > 620) {
+        randomCount ++;
+      }
+      if (millis() - rtimerecord > timer) {
+        //the end of random recording
+        if (randomCount > 3) {
+          Serial.write(54);
+        }
+        state = 6;
+        setTrue();
+        stable = false;
+        delay(1000);
+      }
+    } else {
+      if (xRaw < 400 || xRaw > 620) {
+        //random process start
+        if (state != 6) {
+          //start recording shaking
+          rtimerecord = millis();
+          state = 5;
+          randomCount = 0;
+          dorecord = true;
+          //Serial.println("start recording");
+          randomCount ++;
+        }
+      } else {
+        //last or next
+        if (xRaw < 411 && xRaw > 407 )
+        {
+          Serial.write(52);
+          ////Serial.println(state);
+          setTrue();
+          stable = false;
 
-    }
-    if (xRaw > 600)
-    {
-      Serial.println("last one");
-      stable = false;
-      play = true;
-      stopp = true;
-      pause = true;
-      speedup = true;
-
-    }
-  }
-}
-
-
-void AutoCalibrate(int xRaw, int yRaw, int zRaw)
-{
-  Serial.println("Calibrate");
-  if (xRaw < xRawMin)
-  {
-    xRawMin = xRaw;
-  }
-  if (xRaw > xRawMax)
-  {
-    xRawMax = xRaw;
-  }
-
-  if (yRaw < yRawMin)
-  {
-    yRawMin = yRaw;
-  }
-  if (yRaw > yRawMax)
-  {
-    yRawMax = yRaw;
-  }
-
-  if (zRaw < zRawMin)
-  {
-    zRawMin = zRaw;
-  }
-  if (zRaw > zRawMax)
-  {
-    zRawMax = zRaw;
-  }
+        }
+        if (xRaw > 609 && xRaw < 613)
+        {
+          Serial.write(51);
+          ////Serial.println(state);
+          setTrue();
+          stable = false;
+        }
+      }
+    }// end of state != 5 but stable
+  }// end of stable
 }
