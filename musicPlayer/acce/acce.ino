@@ -17,11 +17,13 @@ boolean dorecord = true;
 
 // Take multiple samples to reduce noise
 const int sampleSize = 10;
+int turnaround = 0;
 
 void setup()
 {
-  analogReference(EXTERNAL);
-  Serial.begin(9600);
+  //analogReference(EXTERNAL);
+  Serial1.begin(9600);
+  while (!Serial1);
 }
 
 void loop()
@@ -29,7 +31,7 @@ void loop()
   int xRaw = ReadAxis(xInput);
   int yRaw = ReadAxis(yInput);
   int zRaw = ReadAxis(zInput);
-  ////Serial.println(xRaw);
+  //Serial1.write(xRaw);
   Test(xRaw, yRaw, zRaw);
   delay(50);
 }
@@ -56,111 +58,109 @@ void setTrue() {
 
 void Test(int xRaw, int yRaw, int zRaw)
 {
-
-  if (zRaw > 640 && pause)
+  //Serial1.writeln(zRaw);
+  if (zRaw > 405 && pause)
   {
     if (state != 5) {
+      if (turnaround == 3) {
+        Serial1.write(54);
+        state = -1;
+        turnaround = 0;
+      }
       if (state != 1) {
         timerecord = millis();
         state = 1;
+        turnaround ++;
       }
       if (millis() - timerecord > timer) {
-        Serial.write(50);
+        Serial1.write(50);
         setTrue();
         pause = false;
+        turnaround = 0;
       }
     }
 
   }
-  if (zRaw < 450 && speedup)
+  if (zRaw < 290 && speedup)
   {
     if (state != 5) {
+      if (turnaround == 3) {
+        Serial1.write(54);
+        state = -1;
+        turnaround = 0;
+      }
       if (state != 2) {
         timerecord = millis();
         state = 2;
+        turnaround ++;
       }
       if (millis() - timerecord > timer) {
-        Serial.write(53);
+        Serial1.write(53);
         setTrue();
         speedup = false;
+        turnaround = 0;
       }
     }
   }
-  if (yRaw > 600  && stopp)
+  if (yRaw > 380  && stopp)
   {
     if (state != 5) {
+      if (turnaround == 3) {
+        Serial1.write(54);
+        state = -1;
+        turnaround = 0;
+      }
       if (state != 3) {
         timerecord = millis();
         state = 3;
+        turnaround ++;
+
       }
       if (millis() - timerecord > timer) {
-        Serial.write(55);
+        Serial1.write(55);
         setTrue();
         stopp = false;
+        turnaround = 0;
       }
     }
   }
-  if ( yRaw < 410 && play)
+  if ( yRaw < 260 && play)
   {
     if (state != 5) {
+      if (turnaround == 3) {
+        Serial1.write(54);
+        state = -1;
+        turnaround = 0;
+      }
       if (state != 4) {
         timerecord = millis();
         state = 4;
+        turnaround ++;
       }
       if (millis() - timerecord > timer) {
-        Serial.write(49);
+        Serial1.write(49);
         setTrue();
         play = false;
+        turnaround = 0;
       }
     }
   }
 
-
   if (stable) {
-    if (state == 5) {
-      if (xRaw < 400 || xRaw > 620) {
-        randomCount ++;
-      }
-      if (millis() - rtimerecord > timer) {
-        //the end of random recording
-        if (randomCount > 3) {
-          Serial.write(54);
-        }
-        state = 6;
-        setTrue();
-        stable = false;
-        delay(1000);
-      }
-    } else {
-      if (xRaw < 400 || xRaw > 620) {
-        //random process start
-        if (state != 6) {
-          //start recording shaking
-          rtimerecord = millis();
-          state = 5;
-          randomCount = 0;
-          dorecord = true;
-          //Serial.println("start recording");
-          randomCount ++;
-        }
-      } else {
-        //last or next
-        if (xRaw < 411 && xRaw > 407 )
-        {
-          Serial.write(52);
-          ////Serial.println(state);
-          setTrue();
-          stable = false;
+    if (xRaw < 280 && xRaw > 250 )
+    {
+      Serial1.write(52);
+      ////Serial1.write(state);
+      setTrue();
+      stable = false;
 
-        }
-        if (xRaw > 609 && xRaw < 613)
-        {
-          Serial.write(51);
-          ////Serial.println(state);
-          setTrue();
-          stable = false;
-        }
-      }
-    }// end of state != 5 but stable
-  }// end of stable
+    }
+    if (xRaw > 380 && xRaw < 410)
+    {
+      Serial1.write(51);
+      ////Serial1.write(state);
+      setTrue();
+      stable = false;
+    }
+  }
 }

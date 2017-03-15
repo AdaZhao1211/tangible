@@ -14,7 +14,7 @@ created by Tom Igoe
 var song;		// the sound file to be played
 var serial; // variable to hold an instance of the serialport library
 //var portName = "/dev/cu.usbmodem1411";
-var portName = "/dev/cu.AdafruitEZ-Link3ae1-SPP";
+var portName = "/dev/cu.AdafruitEZ-Link7457-SPP";
 
 var inData;
 // the list of songs:
@@ -81,8 +81,7 @@ function controlSound(input) {
   //console.log("in controlSound function");
   switch(input) {
     case 49:   // start/stop, press 1
-    song.rate(1.0);   // double the play speed
-
+    song.rate(1.0);
     if(!song.isPlaying()){
       song.play();
     }
